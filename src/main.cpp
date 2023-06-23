@@ -122,13 +122,14 @@ entt::entity create_falling(entt::registry& reg, float x, float y, float vy)
   return ent;
 }
 
-
+#include "scene.hpp"
 
 
 int main(int argc, const char** argv)
 {
-  entt::registry registry;
-  auto organizer = systems::organizer();
+  Scene scene(systems::organizer());
+  auto& organizer = scene.get_organizer();
+  auto& registry = scene.get_registry();
   auto graph = prepare_registry(organizer, registry);
   if(argc == 2)
   {
@@ -141,6 +142,11 @@ int main(int argc, const char** argv)
     {
       debug_graph(std::cout, graph);
       std::cout << std::endl;
+    }
+    if(!strcmp("--order", argv[1]))
+    {
+      scene.calculate_order();
+      return 0;
     }
   }
 
