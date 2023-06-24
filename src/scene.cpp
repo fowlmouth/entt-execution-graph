@@ -37,6 +37,8 @@ struct node_graph
 
   std::vector< node* > entrypoints() const;
 
+  std::vector< int > calculate_order() const;
+
 private:
   node* insert(const int function_vertex);
   node* insert(const entt::type_info* type);
@@ -79,6 +81,43 @@ std::vector< node* > node_graph::entrypoints() const
     std::back_inserter(result),
     [](node* n){ return n->in.size() == 0; });
   return std::move(result);
+}
+
+std::vector< int > node_graph::calculate_order() const
+{
+  // 1. starting with the entrypoints, mark off nodes as completed
+  // 2. scan the list of remaining nodes, nodes with all "in" parameters marked as completed can be marked as completed.
+  //      if the node is a function, add its index to result vector
+  // 3. repeat step 2 until no nodes remain
+
+  std::vector< int > result;
+
+  std::unordered_set< node* > cleared;
+  std::vector< node* > remaining = nodes;
+  while(!remaining.empty())
+  {
+    for(int i = 0; i < remaining.size(); )
+    {
+      node* n = remaining[i];
+      if(std::all_of(n->in.begin(), n->in.end(), [&](node* x){ return cleared.contains(x); }))
+      {
+        cleared.insert(n);
+        if(n->kind == node::function)
+        {
+          result.push_back(n->vertex_);
+        }
+        if(i < remaining.size()-1)
+        {
+          remaining[i] = remaining.back();
+        }
+        remaining.pop_back();
+        continue;
+      }
+      ++i;
+    }
+  }
+
+  return result;
 }
 
 node* node_graph::insert(const int function_vertex)
@@ -143,6 +182,12 @@ void Scene::calculate_order()
   for(node* n : entrypoints)
   {
     std::cout << "  name= " << n->name << "  type= " << (n->kind == node::type ? "type" : "function") << std::endl;
+  }
+  auto order = ng.calculate_order();
+  std::cout << "order calculated:" << std::endl;
+  for(int idx : order)
+  {
+    std::cout << "  name= " << graph[idx].name() << std::endl;
   }
 
 }
