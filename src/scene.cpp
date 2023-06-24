@@ -20,80 +20,129 @@ entt::registry& Scene::get_registry()
 }
 
 
-#include <unordered_map>
 #include <iostream>
+#include <algorithm>
 
-struct typeinfo_stat
+// temporary node graph structure for working with the entt::organizer vertices
+
+struct node;
+
+struct node_graph
 {
-  std::vector< int > rw, ro;
-  int rw_remaining = 0;
+  const std::vector< entt::organizer::vertex >& graph;
+  std::vector< node* > nodes;
+
+  node_graph(const std::vector< entt::organizer::vertex >& graph);
+  ~node_graph();
+
+  std::vector< node* > entrypoints() const;
+
+private:
+  node* insert(const int function_vertex);
+  node* insert(const entt::type_info* type);
 };
+
+struct node
+{
+  enum{ type, function } kind;
+  union
+  {
+    const entt::type_info* type_;
+    int vertex_;
+  };
+  std::string_view name;
+
+  std::vector< node* > in, out;
+};
+
+node_graph::node_graph(const std::vector< entt::organizer::vertex >& graph)
+: graph(graph)
+{
+  for(int i = 0; i < graph.size(); ++i)
+  {
+    insert(i);
+  }
+}
+
+node_graph::~node_graph()
+{
+  for(node* n : nodes)
+  {
+    delete n;
+  }
+}
+
+std::vector< node* > node_graph::entrypoints() const
+{
+  std::vector< node* > result;
+  std::copy_if(nodes.begin(), nodes.end(),
+    std::back_inserter(result),
+    [](node* n){ return n->in.size() == 0; });
+  return std::move(result);
+}
+
+node* node_graph::insert(const int function_vertex)
+{
+  auto iter = std::find_if(nodes.begin(), nodes.end(), [function_vertex](node* n){ return n->kind == node::function && n->vertex_ == function_vertex; });
+  if(iter == nodes.end())
+  {
+    const auto& vertex = graph[function_vertex];
+
+    node* n = new node;
+    n->kind = node::function;
+    n->vertex_ = function_vertex;
+    n->name = vertex.name();
+    nodes.push_back(n);
+
+    std::vector< const entt::type_info* > buffer;
+    buffer.resize(vertex.ro_count());
+    vertex.ro_dependency(&buffer[0], buffer.size());
+    for(const entt::type_info* type : buffer)
+    {
+      node* type_node = insert(type);
+      n->in.push_back(type_node);
+      type_node->out.push_back(n);
+    }
+
+    buffer.resize(vertex.rw_count());
+    vertex.rw_dependency(&buffer[0], buffer.size());
+    for(const entt::type_info* type : buffer)
+    {
+      node* type_node = insert(type);
+      n->out.push_back(type_node);
+      type_node->in.push_back(n);
+    }
+
+    return n;
+  }
+  return *iter;
+}
+
+node* node_graph::insert(const entt::type_info* type)
+{
+  auto iter = std::find_if(nodes.begin(), nodes.end(), [&type](node* n){ return n->kind == node::type && n->type_ == type; });
+  if(iter == nodes.end())
+  {
+    node* n = new node;
+    n->kind = node::type;
+    n->type_ = type;
+    n->name = type->name();
+    nodes.push_back(n);
+    return n;
+  }
+  return *iter;
+}
 
 
 void Scene::calculate_order()
 {
   graph = organizer.graph();
-  std::unordered_map< const entt::type_info* , typeinfo_stat > typeinfo_stats;
-  std::vector< const entt::type_info* > buffer;
-  for(int i = 0; i < graph.size(); ++i)
+  node_graph ng(graph);
+  std::vector< node* > entrypoints = ng.entrypoints();
+  std::cout << "entrypoints:" << std::endl;
+  for(node* n : entrypoints)
   {
-    auto rw_count = graph[i].rw_count(),
-      ro_count = graph[i].ro_count();
-    std::cout << "type= " << graph[i].name() << "  rw= " << rw_count << "  ro= " << ro_count << std::endl;
-    buffer.resize(rw_count);
-    graph[i].rw_dependency(&buffer[0], rw_count);
-    for(const entt::type_info* type : buffer)
-    {
-      std::cout << "    rw type= " << type->name() << std::endl;
-      auto& stats = typeinfo_stats[ type ];
-      stats.rw.push_back(i);
-      stats.rw_remaining++;
-    }
-
-    buffer.resize(ro_count);
-    graph[i].ro_dependency(&buffer[0], ro_count);
-    for(const entt::type_info* type : buffer)
-    {
-      typeinfo_stats[ type ].ro.push_back(i);
-    }
+    std::cout << "  name= " << n->name << "  type= " << (n->kind == node::type ? "type" : "function") << std::endl;
   }
 
-  std::vector< int > vertex_order;
-
-  // find beginnings
-  // types with 0 rws are potential entrypoints
-  std::unordered_set< const entt::type_info* > cleared_rw_types;
-  while(vertex_order.size() != graph.size())
-  {
-    for(const auto pair : typeinfo_stats)
-    {
-      if(pair.second.rw_remaining == 0)
-      {
-        cleared_rw_types.insert(pair.first);
-      }
-    }
-
-    for(const auto type : cleared_rw_types)
-    {
-      // check ROs for all deps
-      std::cout << "checking type= " << type->name() << std::endl;
-      const auto& type_ro = typeinfo_stats[type].ro;
-      for(const auto ro_vert_index : type_ro)
-      {
-        const auto& dep = graph[ro_vert_index];
-        std::cout << "  ro vert name= " << dep.name() << std::endl;
-        // if every RO type for this function is "RW cleared" then this fn can be called now
-        const int ro_count = dep.ro_count();
-        buffer.resize(ro_count);
-        dep.ro_dependency(&buffer[0], ro_count);
-        if(std::all_of(buffer.begin(), buffer.end(), [&cleared_rw_types](const entt::type_info* type){ return cleared_rw_types.contains(type); }))
-        {
-          // all RO deps are cleared
-          std::cout << "    fully specified!" << std::endl;
-        }
-      }
-    }
-
-    break;
-  }
 }
