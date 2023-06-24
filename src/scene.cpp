@@ -19,8 +19,6 @@ entt::registry& Scene::get_registry()
   return registry;
 }
 
-
-#include <iostream>
 #include <algorithm>
 
 // temporary node graph structure for working with the entt::organizer vertices
@@ -177,17 +175,5 @@ void Scene::calculate_order()
 {
   graph = organizer.graph();
   node_graph ng(graph);
-  std::vector< node* > entrypoints = ng.entrypoints();
-  std::cout << "entrypoints:" << std::endl;
-  for(node* n : entrypoints)
-  {
-    std::cout << "  name= " << n->name << "  type= " << (n->kind == node::type ? "type" : "function") << std::endl;
-  }
-  auto order = ng.calculate_order();
-  std::cout << "order calculated:" << std::endl;
-  for(int idx : order)
-  {
-    std::cout << "  name= " << graph[idx].name() << std::endl;
-  }
-
+  task_order = ng.calculate_order();
 }
