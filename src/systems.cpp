@@ -9,9 +9,9 @@ void apply_velocity(entt::view< entt::get_t< Translation , const Velocity >> mov
   {
     auto& translation = moving_objects.get<Translation>(ent);
     const auto& velocity = moving_objects.get<Velocity>(ent);
-    translation.x += velocity.x * dt.delta_time_seconds;
-    translation.y += velocity.y * dt.delta_time_seconds;
-    translation.radians += velocity.angular * dt.delta_time_seconds;
+    translation.x += velocity.x * dt; //.delta_time_seconds;
+    translation.y += velocity.y * dt; //.delta_time_seconds;
+    translation.radians += velocity.angular * dt; //.delta_time_seconds;
   }
 }
 

@@ -1,4 +1,4 @@
-FROM debian:12
+FROM debian:12 AS build
 
 RUN apt-get update \
   && apt-get install -y \
@@ -15,3 +15,17 @@ ADD src ./src
 
 RUN make -j"$(nproc)" graph.png
 
+
+FROM debian:12 AS final
+
+RUN apt-get update \
+  && apt-get install -y \
+    libbox2d2 libsfml-graphics2.5
+
+WORKDIR /app
+
+COPY --from=build /build/graph.png ./
+COPY --from=build /build/entt-test ./
+
+ENTRYPOINT ["./entt-test"]
+CMD []

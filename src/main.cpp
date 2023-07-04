@@ -122,15 +122,16 @@ entt::entity create_falling(entt::registry& reg, float x, float y, float vy)
   return ent;
 }
 
-#include "scene.hpp"
+#include "physics.hpp"
 
 
 int main(int argc, const char** argv)
 {
-  Scene scene(systems::organizer());
+  scenes::PhysicsScene scene;
   auto& organizer = scene.get_organizer();
   auto& registry = scene.get_registry();
-  auto graph = prepare_registry(organizer, registry);
+  scene.prepare();
+  auto& graph = scene.get_graph();
   if(argc == 2)
   {
     if(!strcmp("--dot", argv[1]))
@@ -158,7 +159,7 @@ int main(int argc, const char** argv)
 
   // set up time delta for frames
   auto& dt = registry.ctx().get< resources::DeltaTime >();
-  dt.delta_time_seconds = 1.f;
+  dt = 1.f;
 
   // tick 10 times
   int ticks = 3;
