@@ -33,6 +33,7 @@ struct PhysicsWorld
   b2World world;
   int velocity_iterations = 6;
   int position_iterations = 2;
+  float scale = 32.f;
 
   PhysicsWorld();
 

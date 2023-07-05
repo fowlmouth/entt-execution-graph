@@ -55,7 +55,7 @@ void debug_graph(std::ostream& out, const std::vector<entt::organizer::vertex>& 
 
 // this code is borrowed with love from github.com/MadeOfJelly/MushMachine
 // graphviz dot export
-static std::ostream& dot(std::ostream& out, const std::vector<entt::organizer::vertex>& nodes, bool draw_children = true)
+static std::ostream& dot(std::ostream& out, const std::vector<entt::organizer::vertex>& nodes)
 {
   out << "digraph EnTT_organizer {\nrankdir=LR;\n";
 
@@ -83,15 +83,6 @@ static std::ostream& dot(std::ostream& out, const std::vector<entt::organizer::v
       out << "t" << typeinfo->hash() << " -> n" << i << ";\n";
     }
     typeinfo_found.insert(typeinfo_buffer.begin(), typeinfo_buffer.end());
-
-    // children
-    if(draw_children)
-    {
-      for(const size_t child : node.children())
-      {
-        out << "n" << child << " -> " << "n" << i << ";\n";
-      }
-    }
   }
 
   for(const entt::type_info* typeinfo : typeinfo_found)
@@ -123,7 +114,7 @@ entt::entity create_falling(entt::registry& reg, float x, float y, float vy)
 }
 
 #include "physics.hpp"
-
+#include "app.hpp"
 
 int main(int argc, const char** argv)
 {
@@ -136,49 +127,66 @@ int main(int argc, const char** argv)
   {
     if(!strcmp("--dot", argv[1]))
     {
-      dot(std::cout, graph, false);
+      dot(std::cout, graph);
       return 0;
     }
     if(!strcmp("--debug", argv[1]))
     {
       debug_graph(std::cout, graph);
       std::cout << std::endl;
+      return 0;
     }
     if(!strcmp("--order", argv[1]))
     {
       scene.calculate_order();
       return 0;
     }
-  }
-
-  // create objects
-  for(int x = 0; x < 2; ++x)
-  {
-    create_falling(registry, 0, 0, 1.f);
-  }
-
-  // set up time delta for frames
-  auto& dt = registry.ctx().get< resources::DeltaTime >();
-  dt = 1.f;
-
-  // tick 10 times
-  int ticks = 3;
-  for(; ticks--; )
-  {
-    for(const auto& vert : graph)
+    if(!strcmp("--test", argv[1]))
     {
-      const char* name = vert.name();
-      std::cout << "* Start stage= " << (name ? name : "(noname)") << std::endl;
-      vert.callback()(vert.data(), registry);
-    }
+      // create objects
+      for(int x = 0; x < 2; ++x)
+      {
+        create_falling(registry, 0, 0, 1.f);
+      }
 
-    auto view = registry.view< components::Translation >();
-    for(auto ent : view)
-    {
-      const auto& t = view.get< components::Translation >(ent);
-      std::cout << "ent id= " << (int)ent << "  x= " << t.x << " y= " << t.y << std::endl;
+      // set up time delta for frames
+      auto& dt = registry.ctx().get< resources::DeltaTime >();
+      dt = 1.f;
+
+      // tick 10 times
+      int ticks = 3;
+      for(; ticks--; )
+      {
+        for(const auto& vert : graph)
+        {
+          const char* name = vert.name();
+          std::cout << "* Start stage= " << (name ? name : "(noname)") << std::endl;
+          vert.callback()(vert.data(), registry);
+        }
+
+        auto view = registry.view< components::Translation >();
+        for(auto ent : view)
+        {
+          const auto& t = view.get< components::Translation >(ent);
+          std::cout << "ent id= " << (int)ent << "  x= " << t.x << " y= " << t.y << std::endl;
+        }
+        std::cout << std::endl;
+      }
+      return 0;
     }
-    std::cout << std::endl;
   }
-  return 0;
+
+  {
+    entt::entity ship = registry.create();
+
+    b2BodyDef body_def;
+    body_def.type = b2_dynamicBody;
+
+    b2Body *body = registry.ctx().get< resources::PhysicsWorld >()->CreateBody(&body_def);
+
+    registry.emplace< components::Body >(ship, body);
+  }
+
+  Application app(scene);
+  return app.run();
 }

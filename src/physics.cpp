@@ -39,6 +39,9 @@ void physics_debug_render(
   const resources::Viewport& viewport,
   resources::RenderGroup& render_group)
 {
+  if(!enabled)
+    return;
+
   // query world
 
   // render to drawable
