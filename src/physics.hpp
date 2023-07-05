@@ -7,6 +7,8 @@
 #include "scene.hpp"
 #include "systems.hpp"
 
+#include "physics_debug_draw.hpp"
+
 namespace components
 {
 

@@ -49,19 +49,36 @@ void check_collisions(entt::view< entt::get_t< const Collider, const BoundingBox
 
 }
 
-void update_camera(entt::registry& , entt::view< entt::get_t< const Translation >>, Camera& )
+void update_camera(entt::registry& registry, entt::view< entt::get_t< const Translation >> view, Camera& camera)
 {
+  if(camera.tracking != entt::null)
+  {
+    if(!registry.valid(camera.tracking))
+    {
+      camera.tracking = entt::null;
+      return;
+    }
+    const auto& translation = view.get< Translation >(camera.tracking);
+    camera.x = translation.x;
+    camera.y = translation.y;
+  }
 }
 
-void update_viewport(entt::registry& , const Camera& , Viewport& )
+void update_viewport(entt::registry& , const Camera& camera, const WindowSize& window_size, Viewport& viewport)
 {
+  float w = camera.scale_x * (float)window_size.x;
+  float h = camera.scale_y * (float)window_size.y;
+  viewport.left = camera.x - w / 2;
+  viewport.top  = camera.y - h / 2;
+  viewport.width  = w;
+  viewport.height = h;
 }
 
 void query_world(entt::registry& , entt::view< entt::get_t< const BoundingBox, const DrawableProvider >>, const Viewport&, RenderGroup& )
 {
 }
 
-void render_world(entt::registry& , const Viewport& , const RenderGroup& )
+void render_world(entt::registry& , const Viewport& , const RenderGroup& , sf::RenderTarget*& target )
 {
 }
 

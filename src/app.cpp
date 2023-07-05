@@ -9,7 +9,9 @@ Application::Application(Scene& scene)
   window.create(sf::VideoMode(800, 600), "entt-sfml", sf::Style::Default, settings);
   window.setVerticalSyncEnabled(true);
 
-  scene.get_registry().ctx().emplace< sf::RenderTarget& >(window);
+  scene.get_registry().ctx().emplace< sf::RenderTarget* >(&window);
+
+  scene.get_registry().ctx().emplace< resources::WindowSize >(window.getSize());
 }
 
 int Application::run()
@@ -31,8 +33,8 @@ int Application::run()
 
       case sf::Event::Resized:
       {
-        sf::FloatRect visibleArea(0, 0, event.size.width, event.size.height);
-        window.setView(sf::View(visibleArea));
+        sf::Vector2u window_size(event.size.width, event.size.height);
+        scene.get_registry().ctx().get< resources::WindowSize >() = window_size;
         break;
       }
       case sf::Event::KeyPressed:

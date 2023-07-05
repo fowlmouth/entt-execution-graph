@@ -5,6 +5,8 @@
 
 #include <entt/entt.hpp>
 
+#include <SFML/Graphics.hpp>
+
 namespace systems
 {
   using namespace components;
@@ -24,11 +26,11 @@ namespace systems
 
   void update_camera(entt::registry& , entt::view< entt::get_t< const Translation >>, Camera& );
 
-  void update_viewport(entt::registry& , const Camera& , Viewport& );
+  void update_viewport(entt::registry& , const Camera& , const WindowSize& , Viewport& );
 
   void query_world(entt::registry& , entt::view< entt::get_t< const BoundingBox, const DrawableProvider >>, const Viewport&, RenderGroup& );
 
-  void render_world(entt::registry& , const Viewport& , const RenderGroup& );
+  void render_world(entt::registry& , const Viewport& , const RenderGroup& , sf::RenderTarget*& );
 
   entt::organizer organizer();
 

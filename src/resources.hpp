@@ -4,6 +4,8 @@
 
 #include "hid.hpp"
 
+#include <SFML/System.hpp>
+
 namespace resources
 {
 
@@ -54,24 +56,32 @@ struct BasicResource
   }
 };
 
+
+
 struct DeltaTime : public BasicResource< float >
 {
   using Parent = BasicResource<float>;
 
-  using Parent::operator=;
+  using Parent::operator= ;
 };
+
+
 
 struct Camera
 {
-  float x, y;
+  float x = 0, y = 0;
   entt::entity tracking = entt::null;
-  float viewport_width, viewport_height;
+  float scale_x = 1.f, scale_y = 1.f;
 };
+
+
 
 struct Viewport
 {
   float left, top, width, height;
 };
+
+
 
 struct RenderGroup
 {
@@ -80,6 +90,15 @@ struct RenderGroup
     int zorder;
   };
   std::vector< Drawable > drawable;
+};
+
+
+
+struct WindowSize : public sf::Vector2u
+{
+  using Parent = sf::Vector2u ;
+
+  using Parent::operator= ;
 };
 
 

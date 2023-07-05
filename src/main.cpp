@@ -183,8 +183,20 @@ int main(int argc, const char** argv)
     body_def.type = b2_dynamicBody;
 
     b2Body *body = registry.ctx().get< resources::PhysicsWorld >()->CreateBody(&body_def);
-
     registry.emplace< components::Body >(ship, body);
+
+    b2FixtureDef fixture_def;
+
+    b2CircleShape shape;
+    shape.m_radius = 1.f;
+    fixture_def.shape = &shape;
+
+    fixture_def.density = 1.f;
+    fixture_def.friction = 0.3f;
+
+    b2Fixture *fixture = body->CreateFixture(&fixture_def);
+    registry.emplace< components::Fixture >(ship, fixture);
+
   }
 
   Application app(scene);
